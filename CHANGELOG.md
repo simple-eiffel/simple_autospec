@@ -33,3 +33,26 @@ Initial release. The AutoSpec mechanical core, built on simple_smt.
   record skipped clauses. Mined clauses are seeds, then interrogated by the checker.
 - 5 new tests (parser translate/reject, parsed-clause checkable, miner extract+translate,
   miner detects infeasible real contract): 15/15 total. Demo mines real-shaped source.
+
+## 1.2.0 — 2026-07-18
+
+### Added
+- `AUTOSPEC_SCANNER` + CLI `--scan <dir>`: batch contract audit — walk an Eiffel
+  source tree, mine every feature's contracts, and flag DEAD (unsatisfiable)
+  preconditions across a whole library or the ecosystem.
+
+### Fixed (soundness)
+- The expression parser now uses linear REAL arithmetic (identifiers and numerals
+  are reals), not integers. Real-valued ranges like `0 < p < 1` are no longer
+  falsely reported unsatisfiable.
+- The batch audit reports ONLY dead preconditions. The previous pre-and-post
+  "infeasible" check conflated a command's pre-state and post-state (e.g. `require
+  id = 0 ... a_id > 0` with `ensure id = a_id`) and produced false positives; that
+  check is unsound without weakest-precondition/framing and was removed from the
+  batch audit. (The library's `is_feasible`/`is_vacuous_for` remain correct for
+  intentional single-state specs.)
+
+### Verified
+- Sound ecosystem audit: 127 libraries, 6,581 features, 10,281 clauses in the
+  decidable fragment, 0 dead preconditions. Tool confirmed sensitive: correctly
+  flags a genuine dead precondition (`x > 100 and x < 10`).

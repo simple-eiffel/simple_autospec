@@ -17,10 +17,35 @@ feature {NONE} -- Initialization
 			l_args: ARGUMENTS_32
 		do
 			create l_args
-			if l_args.argument_count >= 1 then
+			if l_args.argument_count >= 2 and then l_args.argument (1).same_string ("--scan") then
+				scan_tree (l_args.argument (2).to_string_8)
+			elseif l_args.argument_count >= 1 then
 				mine_file (l_args.argument (1).to_string_8)
 			else
 				run_demo
+			end
+		end
+
+	scan_tree (a_root: STRING)
+			-- Audit every feature's contracts under `a_root' for dead/infeasible specs.
+		local
+			sc: AUTOSPEC_SCANNER
+		do
+			io.put_string ("AutoSpec contract audit: " + a_root + "%N")
+			io.put_string ("=================================================%N%N")
+			create sc.make
+			sc.scan (a_root)
+			io.put_string ("Files scanned:            " + sc.files_scanned.out + "%N")
+			io.put_string ("Features with contracts:  " + sc.features_mined.out + "%N")
+			io.put_string ("Clauses in decidable fragment: " + sc.clauses_kept.out + "%N")
+			io.put_string ("Clauses skipped (out of fragment): " + sc.clauses_skipped.out + "%N%N")
+			if sc.flagged.is_empty then
+				io.put_string ("No DEAD preconditions found in the decidable fragment.%N")
+			else
+				io.put_string ("FLAGGED (" + sc.dead_count.out + " dead precondition(s)):%N")
+				across sc.flagged as ic loop
+					io.put_string ("  " + ic + "%N")
+				end
 			end
 		end
 

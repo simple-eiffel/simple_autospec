@@ -1,0 +1,16 @@
+EIFGENs/
+Documentation/
+bin/
+*.exe
+*.melted
+*.o
+*.obj
+*.swp
+*.bak
+*~
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.epr
+*.log

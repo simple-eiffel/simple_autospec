@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-23-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-23-0 http://www.eiffel.com/developers/xml/configuration-1-23-0.xsd" name="simple_autospec" uuid="9D41F6A2-3C7E-4B85-A1D0-6F92E8C4B701" library_target="simple_autospec">
+	<description>AutoSpec mechanical core: harden specifications with Z3-backed feasibility, vacuity, and subsumption checks (over simple_smt)</description>
+	<target name="simple_autospec">
+		<root all_classes="true"/>
+		<version major="1" minor="0" release="0" build="1"/>
+		<option warning="warning" syntax="standard" manifest_array_type="mismatch_warning">
+			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+		</option>
+		<capability>
+			<concurrency support="scoop"/>
+			<void_safety support="all"/>
+		</capability>
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf">
+			<class_option class="ARRAYED_LIST">
+				<warning name="obsolete_feature" value="all"/>
+			</class_option>
+		</library>
+		<library name="simple_smt" location="$SIMPLE_EIFFEL\simple_smt\simple_smt.ecf"/>
+		<cluster name="src" location=".\src\" recursive="true"/>
+	</target>
+	<target name="simple_autospec_tests" extends="simple_autospec">
+		<description>Test suite for simple_autospec</description>
+		<root class="TEST_APP" feature="make"/>
+		<setting name="console_application" value="true"/>
+		<setting name="executable_name" value="test_app"/>
+		<library name="simple_testing" location="$SIMPLE_EIFFEL\simple_testing\simple_testing.ecf"/>
+		<cluster name="test" location=".\test\" recursive="true"/>
+	</target>
+	<target name="simple_autospec_app" extends="simple_autospec">
+		<description>AutoSpec demo executable</description>
+		<root class="AUTOSPEC_APP" feature="make"/>
+		<setting name="console_application" value="true"/>
+		<setting name="executable_name" value="simple_autospec"/>
+		<cluster name="app" location=".\app\" recursive="true"/>
+	</target>
+</system>

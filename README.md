@@ -5,7 +5,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
-![tests 10/10](https://img.shields.io/badge/tests-10%2F10-green.svg)
+![tests 15/15](https://img.shields.io/badge/tests-15%2F15-green.svg)
 
 The **AutoSpec** mechanical core: harden a specification with Z3-backed checks —
 feasibility, precondition-liveness, **vacuity detection**, and subsumption — built on
@@ -50,12 +50,37 @@ asp.is_vacuous_for (weak, dumb)      -- True: the spec is under-constrained!
 -- Add the permutation conservation law -> the strengthened spec rejects (0,0,0).
 ```
 
+## Brownfield intake: mine contracts from existing code
+
+Point the miner at real Eiffel source. It extracts each feature's `require`/`ensure`
+clauses, translates the ones in the decidable fragment into candidate specs, and
+**records what it cannot translate** rather than faking it — dotted calls (`a.count`),
+`old`, strings, and reals are skipped honestly.
+
+```eiffel
+create asp.make
+create miner.make (asp)
+mined := miner.mine (source_text)          -- one candidate per feature
+across mined as ic loop
+    print (asp.feasibility_report (ic.spec))   -- e.g. "bad_seek: INFEASIBLE (...)"
+    -- ic.kept  = clauses translated;  ic.skipped = clauses out of fragment
+end
+```
+
+Every mined clause is a **seed, not truth** — mining from code alone would bake in the
+code's bugs, so AutoSpec then interrogates each candidate with Z3 (feasibility, vacuity,
+subsumption). CVEs, worked examples, and human intent are other seed sources.
+
 ## API
 
 - `SIMPLE_AUTOSPEC` — `new_spec`, `is_feasible`, `is_precondition_live`, `admits`,
   `is_vacuous_for`, `strengthens`, `are_equivalent`, `feasibility_report`, `last_witness`.
 - `AUTOSPEC_SPEC` — `require_that`, `ensure_that`, `invariant_that`, and the composed
   formulas `precondition`/`postcondition`/`class_invariant`/`obligation`/`all_conditions`.
+- `AUTOSPEC_EXPR_PARSER` — compiles Eiffel boolean/arithmetic text into `SMT_EXPR` for
+  the decidable fragment (`+ - *`, comparisons, `and or not implies xor`); fails cleanly
+  outside it.
+- `AUTOSPEC_MINER` / `AUTOSPEC_MINED` — the brownfield intake and its per-feature result.
 
 ## Where it fits
 

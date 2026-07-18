@@ -170,6 +170,121 @@ feature -- Subsumption (pruning 1:M candidates)
 			assert ("report flags infeasible", asp.feasibility_report (bad).has_substring ("INFEASIBLE"))
 		end
 
+feature -- Expression parser (decidable-fragment translation)
+
+	test_parser_translates_arithmetic_clauses
+			-- Real contract-shaped expressions translate to SMT_EXPR.
+		local
+			asp: SIMPLE_AUTOSPEC
+			p: AUTOSPEC_EXPR_PARSER
+		do
+			create asp.make
+			create p.make (asp.smt)
+			assert ("a >= 1", p.parse_clause ("a >= 1") /= Void)
+			assert ("1 <= k and k <= n", p.parse_clause ("1 <= k and k <= n") /= Void)
+			assert ("n > 0 and n < 100", p.parse_clause ("n > 0 and n < 100") /= Void)
+			assert ("count = capacity - 1 implies count < capacity",
+				p.parse_clause ("count = capacity - 1 implies count < capacity") /= Void)
+		end
+
+	test_parser_rejects_out_of_fragment
+			-- Dotted calls, old, strings are rejected (not faked).
+		local
+			asp: SIMPLE_AUTOSPEC
+			p: AUTOSPEC_EXPR_PARSER
+		do
+			create asp.make
+			create p.make (asp.smt)
+			assert ("a.count rejected", p.parse_clause ("a.count >= 0") = Void)
+			assert ("old x rejected", p.parse_clause ("value = old value + 1") = Void)
+			assert ("not a boolean clause rejected", p.parse_clause ("n + 1") = Void)
+		end
+
+	test_parsed_clause_is_checkable
+			-- A parsed clause feeds straight into the AutoSpec checks.
+		local
+			asp: SIMPLE_AUTOSPEC
+			p: AUTOSPEC_EXPR_PARSER
+			spec: AUTOSPEC_SPEC
+		do
+			create asp.make
+			create p.make (asp.smt)
+			spec := asp.new_spec ("parsed")
+			if attached p.parse_clause ("x > 0") as al then spec.require_that (al) end
+			if attached p.parse_clause ("x < 0") as al then spec.require_that (al) end
+			assert ("contradictory parsed precondition is dead", not asp.is_precondition_live (spec))
+		end
+
+feature -- Brownfield miner
+
+	test_miner_extracts_and_translates
+			-- Mine a feature's contracts: translate the fragment, skip the rest.
+		local
+			asp: SIMPLE_AUTOSPEC
+			miner: AUTOSPEC_MINER
+			mined: ARRAYED_LIST [AUTOSPEC_MINED]
+		do
+			create asp.make
+			create miner.make (asp)
+			mined := miner.mine (toy_source)
+			assert ("one feature mined", mined.count = 1)
+			if not mined.is_empty then
+				assert ("feature name is increment", mined.first.feature_name.same_string ("increment"))
+				assert ("three clauses translated", mined.first.translated_count = 3)
+				assert ("one clause skipped (old)", mined.first.skipped_count = 1)
+				assert ("mined spec is feasible", asp.is_feasible (mined.first.spec))
+			end
+		end
+
+	test_miner_detects_infeasible_real_contract
+			-- A feature whose (translatable) contracts contradict is flagged.
+		local
+			asp: SIMPLE_AUTOSPEC
+			miner: AUTOSPEC_MINER
+			mined: ARRAYED_LIST [AUTOSPEC_MINED]
+		do
+			create asp.make
+			create miner.make (asp)
+			mined := miner.mine (contradictory_source)
+			assert ("one feature mined", mined.count = 1)
+			if not mined.is_empty then
+				assert ("mined spec is NOT feasible", not asp.is_feasible (mined.first.spec))
+			end
+		end
+
+feature {NONE} -- Miner fixtures
+
+	toy_source: STRING
+			-- A well-formed feature: 3 translatable clauses, 1 with `old' (skipped).
+			-- Built with explicit tabs (%T) so indentation is exact.
+		do
+			Result := "class TOY%N" + "feature -- Element change%N"
+				+ "%Tincrement (a_amount: INTEGER)%N"
+				+ "%T%Trequire%N"
+				+ "%T%T%Tpositive: a_amount > 0%N"
+				+ "%T%T%Tbounded: a_amount <= 100%N"
+				+ "%T%Tdo%N"
+				+ "%T%T%Tvalue := value + a_amount%N"
+				+ "%T%Tensure%N"
+				+ "%T%T%Tstill_bounded: value <= max_value%N"
+				+ "%T%T%Tgrown: value = old value + a_amount%N"
+				+ "%T%Tend%N"
+				+ "end%N"
+		end
+
+	contradictory_source: STRING
+			-- A feature whose translatable preconditions contradict.
+		do
+			Result := "class BAD%N" + "feature%N"
+				+ "%Tf (x: INTEGER)%N"
+				+ "%T%Trequire%N"
+				+ "%T%T%Tlo: x > 10%N"
+				+ "%T%T%Thi: x < 5%N"
+				+ "%T%Tdo%N"
+				+ "%T%Tend%N"
+				+ "end%N"
+		end
+
 feature {NONE} -- Helpers
 
 	all_zero (a_asp: SIMPLE_AUTOSPEC; b1, b2, b3: SMT_EXPR): SMT_EXPR

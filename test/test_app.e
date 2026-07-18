@@ -34,6 +34,15 @@ feature {NONE} -- Initialization
 			run_test (agent t.test_bound_subsumption, "bound_subsumption")
 			run_test (agent t.test_feasibility_report, "feasibility_report")
 
+			io.put_string ("%NExpression parser%N-----------------%N")
+			run_test (agent t.test_parser_translates_arithmetic_clauses, "parser_translates_arithmetic_clauses")
+			run_test (agent t.test_parser_rejects_out_of_fragment, "parser_rejects_out_of_fragment")
+			run_test (agent t.test_parsed_clause_is_checkable, "parsed_clause_is_checkable")
+
+			io.put_string ("%NBrownfield miner%N----------------%N")
+			run_test (agent t.test_miner_extracts_and_translates, "miner_extracts_and_translates")
+			run_test (agent t.test_miner_detects_infeasible_real_contract, "miner_detects_infeasible_real_contract")
+
 			io.put_string ("%N====================================%N")
 			io.put_string ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then io.put_string ("TESTS FAILED%N") else io.put_string ("ALL TESTS PASSED%N") end

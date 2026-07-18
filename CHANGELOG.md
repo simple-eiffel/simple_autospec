@@ -20,3 +20,16 @@ Initial release. The AutoSpec mechanical core, built on simple_smt.
 ### Notes
 - Phase 1 of the AutoSpec arc; the deterministic engine an LLM/human Socratic loop
   drives. Sits on simple_smt (Phase 0). Z3 is the trusted oracle.
+
+## 1.1.0 — 2026-07-18
+
+### Added
+- `AUTOSPEC_EXPR_PARSER` — recursive-descent compiler from Eiffel boolean/arithmetic
+  expression text to SMT_EXPR over the decidable fragment (identifiers, integer literals,
+  + - *, unary minus, parens, = /= < <= > >=, and/or/not/implies/xor). Out-of-fragment
+  constructs (dotted calls, `old`, strings, reals) fail cleanly rather than mistranslate.
+- `AUTOSPEC_MINER` / `AUTOSPEC_MINED` — brownfield intake: read Eiffel source, extract each
+  feature's require/ensure clauses, translate the fragment into candidate AUTOSPEC_SPECs,
+  record skipped clauses. Mined clauses are seeds, then interrogated by the checker.
+- 5 new tests (parser translate/reject, parsed-clause checkable, miner extract+translate,
+  miner detects infeasible real contract): 15/15 total. Demo mines real-shaped source.

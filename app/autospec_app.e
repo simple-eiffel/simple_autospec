@@ -54,6 +54,54 @@ feature {NONE} -- Initialization
 
 			io.put_string ("Result: the strengthened spec is feasible, non-vacuous, admits the%N")
 			io.put_string ("right answer, and subsumes the weak one -- bullet-proof, checked by Z3.%N")
+
+			brownfield_demo
+		end
+
+	brownfield_demo
+			-- Mine contracts out of real-shaped Eiffel source and check them.
+		local
+			asp: SIMPLE_AUTOSPEC
+			miner: AUTOSPEC_MINER
+			mined: ARRAYED_LIST [AUTOSPEC_MINED]
+		do
+			io.put_string ("%N%NBrownfield mining: contracts -> candidate specs%N")
+			io.put_string ("===============================================%N%N")
+			create asp.make
+			create miner.make (asp)
+			mined := miner.mine (sample_source)
+			across mined as ic loop
+				io.put_string ("Feature '" + ic.feature_name + "':%N")
+				io.put_string ("  translated " + ic.translated_count.out + " clause(s) into the decidable fragment:%N")
+				across ic.kept as ck loop io.put_string ("    + " + ck + "%N") end
+				if ic.skipped_count > 0 then
+					io.put_string ("  skipped " + ic.skipped_count.out + " clause(s) out of fragment (recorded, not faked):%N")
+					across ic.skipped as sk loop io.put_string ("    - " + sk + "%N") end
+				end
+				io.put_string ("  " + asp.feasibility_report (ic.spec) + "%N%N")
+			end
+			io.put_string ("Every mined clause is a SEED; AutoSpec then interrogates it with Z3.%N")
+		end
+
+	sample_source: STRING
+			-- Real-shaped Eiffel with a feasible feature and a contradictory one.
+		do
+			Result := "class SAMPLE%N" + "feature%N"
+				+ "%Tset_level (a_level: INTEGER)%N"
+				+ "%T%Trequire%N"
+				+ "%T%T%Tin_range: a_level >= 1 and a_level <= 9%N"
+				+ "%T%Tdo%N"
+				+ "%T%T%Tlevel := a_level%N"
+				+ "%T%Tensure%N"
+				+ "%T%T%Tset: level = a_level%N"
+				+ "%T%Tend%N"
+				+ "%Tbad_seek (a_pos: INTEGER)%N"
+				+ "%T%Trequire%N"
+				+ "%T%T%Tlow: a_pos > 100%N"
+				+ "%T%T%Thigh: a_pos < 10%N"
+				+ "%T%Tdo%N"
+				+ "%T%Tend%N"
+				+ "end%N"
 		end
 
 feature {NONE} -- Implementation

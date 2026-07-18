@@ -71,7 +71,7 @@ feature {NONE} -- Walking
 		local
 			l_dir: SIMPLE_FILE
 			l_names: ARRAYED_LIST [STRING]
-			l_full, l_lower: STRING
+			l_lower: STRING
 		do
 			create l_dir.make (a_dir)
 			create l_names.make (32)

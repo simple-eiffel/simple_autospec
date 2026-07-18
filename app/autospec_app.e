@@ -220,8 +220,9 @@ feature {NONE} -- Initialization
 			if not server.ensure_up then
 				io.put_string ("FAILED to start a server: " + server.last_error + "%N")
 			else
-				io.put_string ("Server up [" + server.backend + "] at " + server.base_url + "%N%N")
-				create client.make_at ("127.0.0.1", l_port)
+				io.put_string ("Server up [" + server.backend + "] at " + server.base_url
+					+ " (endpoint from " + server.endpoint_source + ")%N%N")
+				create client.make_at (server.host, server.port)
 				client.set_max_tokens (64)
 
 				create asp.make

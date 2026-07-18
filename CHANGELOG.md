@@ -117,3 +117,29 @@ Initial release. The AutoSpec mechanical core, built on simple_smt.
   llama.cpp Vulkan): the model proposed `(b1 + b2 + b3) > 0` -- a valid conservation law
   that rejects the trivial (0,0,0) result -- Z3 ACCEPTED it on attempt 1, and harden
   then reported BULLET-PROOF. See reports/live_run.txt.
+
+## 1.6.0 — 2026-07-18
+
+### Added — shared server rendezvous (decoupling by URL, not by library)
+- `AUTOSPEC_SERVER` now resolves its endpoint from a shared rendezvous so unrelated
+  projects reuse ONE llama.cpp server (one model resident in VRAM) without any of them
+  depending on one another. Resolution order:
+  1. `LLAMA_SERVER_URL` env var (reuse-only: never spawns or kills a server it was told
+     about) — `endpoint_source = "env"`.
+  2. A registry file (`<temp>/llama_server_registry.json`) written by a previous spawn,
+     if it still names a healthy server — `endpoint_source = "registry"`.
+  3. The passed-in port; a local server is spawned and its endpoint recorded in the
+     registry for the next project to find — `endpoint_source = "default"`.
+- New queries: `host`, `endpoint_source`, `is_local`, `from_shared_rendezvous`,
+  `registry_path`. `stop` still leaves reused/shared servers alone.
+- `--live` prints which rendezvous the endpoint came from and wires the LLM client to the
+  resolved host/port (not a hardcoded one).
+
+### Verified (LIVE)
+- Env path: `--live ... 9999` with `LLAMA_SERVER_URL=http://127.0.0.1:8137` ignored the
+  wrong port, reused 8137 (`endpoint from env`); model proposed `(b1 + b2 + b3) /= 0`,
+  Z3 accepted attempt 1, harden -> BULLET-PROOF.
+- Registry path: same wrong port with a registry entry naming 8137 -> `endpoint from
+  registry`, reused. Both prove any project (including private HTTP-only ones) shares the
+  one model by URL, with zero code dependency.
+- 23/23 unit tests pass; zero compilation warnings.

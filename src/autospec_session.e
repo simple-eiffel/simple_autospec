@@ -153,7 +153,7 @@ feature {NONE} -- Diagnostics
 			l_first: BOOLEAN
 		do
 			if not spec.outputs.is_empty and then (spec.postconditions.count > 0 or spec.invariants.count > 0) then
-				l_zero := autospec.smt.int_value (0)
+				l_zero := autospec.smt.real_value ("0")
 				l_first := True
 				l_trivial := autospec.smt.true_expr
 				across spec.outputs as ic loop

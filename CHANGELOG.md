@@ -72,3 +72,26 @@ Initial release. The AutoSpec mechanical core, built on simple_smt.
   invariant share the post-state), unlike the pre-and-post conjunction.
 - 5 session tests: 20/20 total. Demo shows harden turning a weak sort spec's
   findings into a bullet-proof verdict after the conservation law is added.
+
+## 1.4.0 — 2026-07-18
+
+### Added
+- `AUTOSPEC_ORACLE` (deferred) — the propose side as a pluggable interface.
+- `AUTOSPEC_LLM_CLIENT` — a self-contained local-LLM oracle: POSTs a completion
+  request to a running llama.cpp server via the system curl (any GGUF model; build the
+  server with the Vulkan backend for GPU-agnostic acceleration). Its own client, reusing
+  only the well-known llama.cpp-server + curl pattern -- no dependency on any private
+  model project.
+- `AUTOSPEC_SCRIPTED_ORACLE` — canned proposals for deterministic tests.
+- `AUTOSPEC_PROPOSER` — the propose/dispose loop with counterexample feedback:
+  strengthen_to_non_vacuous asks the oracle for a clause, parses it, checks with Z3, and
+  on rejection feeds the reason (unparseable, or the surviving trivial witness) into the
+  next prompt and retries. The oracle is never trusted to be correct.
+- 3 proposer tests (accept-after-feedback, feedback-carried, give-up-on-garbage): 23/23.
+- Demo: the loop repairs a vacuous sort spec (reject "b1>=0", accept the permutation),
+  then harden reports BULLET-PROOF.
+
+### Changed
+- The AutoSpec layer now uses linear REAL arithmetic consistently (matching the parser),
+  so mined/parsed clauses and hand-built spec variables share a Z3 sort. (Fixes a
+  parser/spec sort mismatch that made the proposer's clauses not constrain the outputs.)

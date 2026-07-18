@@ -23,7 +23,7 @@ feature -- Feasibility / liveness
 			r, zero: SMT_EXPR
 		do
 			create asp.make
-			r := asp.smt.int_const ("r"); zero := asp.smt.int_value (0)
+			r := asp.smt.real_const ("r"); zero := asp.smt.real_value ("0")
 			spec := asp.new_spec ("contradictory")
 			spec.ensure_that (r.greater (zero))
 			spec.ensure_that (r.less (zero))
@@ -38,7 +38,7 @@ feature -- Feasibility / liveness
 			r, zero: SMT_EXPR
 		do
 			create asp.make
-			r := asp.smt.int_const ("r"); zero := asp.smt.int_value (0)
+			r := asp.smt.real_const ("r"); zero := asp.smt.real_value ("0")
 			spec := asp.new_spec ("nonneg")
 			spec.ensure_that (r.at_least (zero))
 			assert ("nonneg spec is feasible", asp.is_feasible (spec))
@@ -52,7 +52,7 @@ feature -- Feasibility / liveness
 			x, zero: SMT_EXPR
 		do
 			create asp.make
-			x := asp.smt.int_const ("x"); zero := asp.smt.int_value (0)
+			x := asp.smt.real_const ("x"); zero := asp.smt.real_value ("0")
 			spec := asp.new_spec ("dead")
 			spec.require_that (x.greater (zero))
 			spec.require_that (x.less (zero))
@@ -67,7 +67,7 @@ feature -- Feasibility / liveness
 			x, zero: SMT_EXPR
 		do
 			create asp.make
-			x := asp.smt.int_const ("x"); zero := asp.smt.int_value (0)
+			x := asp.smt.real_const ("x"); zero := asp.smt.real_value ("0")
 			spec := asp.new_spec ("live")
 			spec.require_that (x.greater (zero))
 			assert ("live precondition", asp.is_precondition_live (spec))
@@ -83,7 +83,7 @@ feature -- Vacuity (the AutoSpec headline)
 			b1, b2, b3, dumb: SMT_EXPR
 		do
 			create asp.make
-			b1 := asp.smt.int_const ("b1"); b2 := asp.smt.int_const ("b2"); b3 := asp.smt.int_const ("b3")
+			b1 := asp.smt.real_const ("b1"); b2 := asp.smt.real_const ("b2"); b3 := asp.smt.real_const ("b3")
 			weak := asp.new_spec ("sort_weak")
 			weak.ensure_that (b1.at_most (b2))
 			weak.ensure_that (b2.at_most (b3))
@@ -99,7 +99,7 @@ feature -- Vacuity (the AutoSpec headline)
 			b1, b2, b3, dumb: SMT_EXPR
 		do
 			create asp.make
-			b1 := asp.smt.int_const ("b1"); b2 := asp.smt.int_const ("b2"); b3 := asp.smt.int_const ("b3")
+			b1 := asp.smt.real_const ("b1"); b2 := asp.smt.real_const ("b2"); b3 := asp.smt.real_const ("b3")
 			strong := sort_spec_strong (asp, b1, b2, b3)
 			dumb := all_zero (asp, b1, b2, b3)
 			assert ("strong sort spec is NOT vacuous", not asp.is_vacuous_for (strong, dumb))
@@ -113,11 +113,11 @@ feature -- Vacuity (the AutoSpec headline)
 			b1, b2, b3, good: SMT_EXPR
 		do
 			create asp.make
-			b1 := asp.smt.int_const ("b1"); b2 := asp.smt.int_const ("b2"); b3 := asp.smt.int_const ("b3")
+			b1 := asp.smt.real_const ("b1"); b2 := asp.smt.real_const ("b2"); b3 := asp.smt.real_const ("b3")
 			strong := sort_spec_strong (asp, b1, b2, b3)
-			good := b1.is_equal_to (asp.smt.int_value (1))
-				.conjoined (b2.is_equal_to (asp.smt.int_value (2)))
-				.conjoined (b3.is_equal_to (asp.smt.int_value (3)))
+			good := b1.is_equal_to (asp.smt.real_value ("1"))
+				.conjoined (b2.is_equal_to (asp.smt.real_value ("2")))
+				.conjoined (b3.is_equal_to (asp.smt.real_value ("3")))
 			assert ("strong spec admits (1,2,3)", asp.admits (strong, good))
 		end
 
@@ -131,7 +131,7 @@ feature -- Subsumption (pruning 1:M candidates)
 			b1, b2, b3: SMT_EXPR
 		do
 			create asp.make
-			b1 := asp.smt.int_const ("b1"); b2 := asp.smt.int_const ("b2"); b3 := asp.smt.int_const ("b3")
+			b1 := asp.smt.real_const ("b1"); b2 := asp.smt.real_const ("b2"); b3 := asp.smt.real_const ("b3")
 			weak := asp.new_spec ("weak")
 			weak.ensure_that (b1.at_most (b2))
 			weak.ensure_that (b2.at_most (b3))
@@ -148,9 +148,9 @@ feature -- Subsumption (pruning 1:M candidates)
 			x: SMT_EXPR
 		do
 			create asp.make
-			x := asp.smt.int_const ("x")
-			tight := asp.new_spec ("gt5"); tight.require_that (x.greater (asp.smt.int_value (5)))
-			loose := asp.new_spec ("gt0"); loose.require_that (x.greater (asp.smt.int_value (0)))
+			x := asp.smt.real_const ("x")
+			tight := asp.new_spec ("gt5"); tight.require_that (x.greater (asp.smt.real_value ("5")))
+			loose := asp.new_spec ("gt0"); loose.require_that (x.greater (asp.smt.real_value ("0")))
 			assert ("x>5 strengthens x>0", asp.strengthens (tight, loose))
 			assert ("x>0 does not strengthen x>5", not asp.strengthens (loose, tight))
 		end
@@ -163,10 +163,10 @@ feature -- Subsumption (pruning 1:M candidates)
 			r: SMT_EXPR
 		do
 			create asp.make
-			r := asp.smt.int_const ("r")
+			r := asp.smt.real_const ("r")
 			bad := asp.new_spec ("bad")
-			bad.ensure_that (r.greater (asp.smt.int_value (0)))
-			bad.ensure_that (r.less (asp.smt.int_value (0)))
+			bad.ensure_that (r.greater (asp.smt.real_value ("0")))
+			bad.ensure_that (r.less (asp.smt.real_value ("0")))
 			assert ("report flags infeasible", asp.feasibility_report (bad).has_substring ("INFEASIBLE"))
 		end
 
@@ -296,7 +296,7 @@ feature -- The core loop (AUTOSPEC_SESSION)
 			x, zero: SMT_EXPR
 		do
 			create asp.make
-			x := asp.smt.int_const ("x"); zero := asp.smt.int_value (0)
+			x := asp.smt.real_const ("x"); zero := asp.smt.real_value ("0")
 			spec := asp.new_spec ("dead")
 			spec.require_that (x.greater (zero))
 			spec.require_that (x.less (zero))
@@ -316,7 +316,7 @@ feature -- The core loop (AUTOSPEC_SESSION)
 			r, zero: SMT_EXPR
 		do
 			create asp.make
-			r := asp.smt.int_const ("r"); zero := asp.smt.int_value (0)
+			r := asp.smt.real_const ("r"); zero := asp.smt.real_value ("0")
 			s := asp.new_spec ("bad_obligation")
 			s.ensure_that (r.greater (zero))
 			s.ensure_that (r.less (zero))
@@ -336,7 +336,7 @@ feature -- The core loop (AUTOSPEC_SESSION)
 			l_vacuous: BOOLEAN
 		do
 			create asp.make
-			b1 := asp.smt.int_const ("b1"); b2 := asp.smt.int_const ("b2"); b3 := asp.smt.int_const ("b3")
+			b1 := asp.smt.real_const ("b1"); b2 := asp.smt.real_const ("b2"); b3 := asp.smt.real_const ("b3")
 			spec := asp.new_spec ("sort_weak")
 			spec.ensure_that (b1.at_most (b2))
 			spec.ensure_that (b2.at_most (b3))
@@ -358,7 +358,7 @@ feature -- The core loop (AUTOSPEC_SESSION)
 			b1, b2, b3: SMT_EXPR
 		do
 			create asp.make
-			b1 := asp.smt.int_const ("b1"); b2 := asp.smt.int_const ("b2"); b3 := asp.smt.int_const ("b3")
+			b1 := asp.smt.real_const ("b1"); b2 := asp.smt.real_const ("b2"); b3 := asp.smt.real_const ("b3")
 			spec := sort_spec_strong (asp, b1, b2, b3)
 			spec.declare_output (b1); spec.declare_output (b2); spec.declare_output (b3)
 			create session.make (asp, spec)
@@ -375,12 +375,85 @@ feature -- The core loop (AUTOSPEC_SESSION)
 			x: SMT_EXPR
 		do
 			create asp.make
-			x := asp.smt.int_const ("x")
+			x := asp.smt.real_const ("x")
 			spec := asp.new_spec ("no_post")
-			spec.require_that (x.greater (asp.smt.int_value (0)))
+			spec.require_that (x.greater (asp.smt.real_value ("0")))
 			create session.make (asp, spec)
 			session.harden
 			assert ("unconstrained result warned", session.report.has_substring ("unconstrained-result"))
+		end
+
+feature -- Proposer loop (propose / dispose with feedback)
+
+	test_proposer_accepts_after_feedback
+			-- Oracle proposes a useless clause first, then a good one; the loop
+			-- rejects the first (Z3: still vacuous) and accepts the second.
+		local
+			asp: SIMPLE_AUTOSPEC
+			spec: AUTOSPEC_SPEC
+			oracle: AUTOSPEC_SCRIPTED_ORACLE
+			proposer: AUTOSPEC_PROPOSER
+			b1, b2, b3: SMT_EXPR
+			session: AUTOSPEC_SESSION
+		do
+			create asp.make
+			b1 := asp.smt.real_const ("b1"); b2 := asp.smt.real_const ("b2"); b3 := asp.smt.real_const ("b3")
+			spec := asp.new_spec ("sort_weak")
+			spec.ensure_that (b1.at_most (b2))
+			spec.ensure_that (b2.at_most (b3))
+			spec.declare_output (b1); spec.declare_output (b2); spec.declare_output (b3)
+				-- First proposal is useless (all-zero still satisfies b1 >= 0);
+				-- second pins a permutation and rejects the trivial result.
+			create oracle.make (<<"b1 >= 0", "b1 = 1 and b2 = 2 and b3 = 3">>)
+			create proposer.make (asp, oracle)
+			assert ("a clause is accepted", proposer.strengthen_to_non_vacuous (spec, 5) /= Void)
+			assert ("took two attempts", proposer.attempts.count = 2)
+			assert ("accepted the second clause", proposer.accepted_clause_text.has_substring ("b1 = 1"))
+				-- The strengthened spec now hardens clean.
+			create session.make (asp, spec)
+			session.harden
+			assert ("spec is now bulletproof", session.is_bulletproof)
+		end
+
+	test_proposer_feeds_witness_back
+			-- The second prompt must mention the rejection (feedback happened).
+		local
+			asp: SIMPLE_AUTOSPEC
+			spec: AUTOSPEC_SPEC
+			oracle: AUTOSPEC_SCRIPTED_ORACLE
+			proposer: AUTOSPEC_PROPOSER
+			b1, b2: SMT_EXPR
+		do
+			create asp.make
+			b1 := asp.smt.real_const ("b1"); b2 := asp.smt.real_const ("b2")
+			spec := asp.new_spec ("weak2")
+			spec.ensure_that (b1.at_most (b2))
+			spec.declare_output (b1); spec.declare_output (b2)
+			create oracle.make (<<"b1 >= 0", "b1 = 5 and b2 = 7">>)
+			create proposer.make (asp, oracle)
+			if proposer.strengthen_to_non_vacuous (spec, 5) /= Void then end
+			assert ("two prompts sent", oracle.prompts_seen.count = 2)
+			assert ("second prompt carries feedback", oracle.prompts_seen [2].has_substring ("previous attempt was rejected"))
+		end
+
+	test_proposer_gives_up_on_garbage
+			-- An oracle that only emits out-of-fragment junk exhausts attempts.
+		local
+			asp: SIMPLE_AUTOSPEC
+			spec: AUTOSPEC_SPEC
+			oracle: AUTOSPEC_SCRIPTED_ORACLE
+			proposer: AUTOSPEC_PROPOSER
+			b1, b2: SMT_EXPR
+		do
+			create asp.make
+			b1 := asp.smt.real_const ("b1"); b2 := asp.smt.real_const ("b2")
+			spec := asp.new_spec ("weak3")
+			spec.ensure_that (b1.at_most (b2))
+			spec.declare_output (b1); spec.declare_output (b2)
+			create oracle.make (<<"a.count > 0", "old value + 1", "is_valid and x">>)
+			create proposer.make (asp, oracle)
+			assert ("no clause accepted from garbage", proposer.strengthen_to_non_vacuous (spec, 3) = Void)
+			assert ("all three attempts rejected", proposer.attempts.count = 3)
 		end
 
 feature {NONE} -- Helpers
@@ -390,7 +463,7 @@ feature {NONE} -- Helpers
 		local
 			zero: SMT_EXPR
 		do
-			zero := a_asp.smt.int_value (0)
+			zero := a_asp.smt.real_value ("0")
 			Result := b1.is_equal_to (zero).conjoined (b2.is_equal_to (zero)).conjoined (b3.is_equal_to (zero))
 		end
 
@@ -400,7 +473,7 @@ feature {NONE} -- Helpers
 		local
 			one, three: SMT_EXPR
 		do
-			one := a_asp.smt.int_value (1); three := a_asp.smt.int_value (3)
+			one := a_asp.smt.real_value ("1"); three := a_asp.smt.real_value ("3")
 			Result := a_asp.new_spec ("sort_strong")
 			Result.ensure_that (b1.at_most (b2))
 			Result.ensure_that (b2.at_most (b3))

@@ -5,7 +5,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
-![tests 20/20](https://img.shields.io/badge/tests-20%2F20-green.svg)
+![tests 23/23](https://img.shields.io/badge/tests-23%2F23-green.svg)
 
 The **AutoSpec** mechanical core: harden a specification with Z3-backed checks —
 feasibility, precondition-liveness, **vacuity detection**, and subsumption — built on
@@ -28,6 +28,29 @@ postcondition, and invariant clauses, it asks Z3:
 
 These are the *dispose* half of an LLM-proposes / Z3-disposes loop: nothing here judges
 correctness by fiat; every verdict is discharged by the solver.
+
+## Closing the loop: LLM proposes, Z3 disposes
+
+`AUTOSPEC_PROPOSER` completes the propose/dispose cycle: given a vacuous spec, it asks
+an oracle for a candidate conservation clause, parses it, and checks it with Z3 — *does
+adding it keep the spec feasible and reject the trivial witness?* On rejection it feeds
+the reason (an unparseable clause, or the surviving counter-witness) into the next prompt
+and retries. This is the research-validated pattern (LLM proposes / SMT disposes with
+counterexample feedback); the oracle is **never trusted to be correct** — Z3 accepts or
+rejects every candidate, so a weak or local model suffices.
+
+```eiffel
+create proposer.make (asp, oracle)
+if attached proposer.strengthen_to_non_vacuous (spec, 5) as clause then
+    -- `spec' now hardens clean; `proposer.attempts' logs each try + verdict
+end
+```
+
+Two oracles ship: `AUTOSPEC_LLM_CLIENT` (POSTs to a local **llama.cpp** server via curl —
+run any GGUF model; build the server with the **Vulkan** backend to use whatever GPU is
+present) and `AUTOSPEC_SCRIPTED_ORACLE` (canned responses, for deterministic tests). The
+recommended local model is **Qwen3-Coder-30B-A3B** — but because the feedback loop, not
+the model, does the converging, the client is model-agnostic.
 
 ## The core loop: `harden`
 

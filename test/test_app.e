@@ -50,6 +50,11 @@ feature {NONE} -- Initialization
 			run_test (agent t.test_session_bulletproof_when_strong, "session_bulletproof_when_strong")
 			run_test (agent t.test_session_flags_unconstrained_result, "session_flags_unconstrained_result")
 
+			io.put_string ("%NProposer loop (propose/dispose + feedback)%N------------------------------------------%N")
+			run_test (agent t.test_proposer_accepts_after_feedback, "proposer_accepts_after_feedback")
+			run_test (agent t.test_proposer_feeds_witness_back, "proposer_feeds_witness_back")
+			run_test (agent t.test_proposer_gives_up_on_garbage, "proposer_gives_up_on_garbage")
+
 			io.put_string ("%N====================================%N")
 			io.put_string ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then io.put_string ("TESTS FAILED%N") else io.put_string ("ALL TESTS PASSED%N") end

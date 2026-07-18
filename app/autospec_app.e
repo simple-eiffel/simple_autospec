@@ -95,7 +95,40 @@ feature {NONE} -- Initialization
 			io.put_string ("right answer, and subsumes the weak one -- bullet-proof, checked by Z3.%N")
 
 			core_loop_demo
+			proposer_demo
 			brownfield_demo
+		end
+
+	proposer_demo
+			-- Show the propose/dispose loop repairing a vacuous spec (scripted
+			-- oracle stands in for a local LLM; the loop and Z3 checks are real).
+		local
+			asp: SIMPLE_AUTOSPEC
+			spec: AUTOSPEC_SPEC
+			oracle: AUTOSPEC_SCRIPTED_ORACLE
+			proposer: AUTOSPEC_PROPOSER
+			session: AUTOSPEC_SESSION
+			b1, b2, b3: SMT_EXPR
+		do
+			io.put_string ("%N%NProposer loop: LLM proposes / Z3 disposes (with feedback)%N")
+			io.put_string ("=========================================================%N%N")
+			create asp.make
+			b1 := asp.smt.real_const ("b1"); b2 := asp.smt.real_const ("b2"); b3 := asp.smt.real_const ("b3")
+			spec := asp.new_spec ("sort")
+			spec.ensure_that (b1.at_most (b2)); spec.ensure_that (b2.at_most (b3))
+			spec.declare_output (b1); spec.declare_output (b2); spec.declare_output (b3)
+			io.put_string ("Vacuous spec: ensure b1<=b2<=b3 only (accepts the trivial 0,0,0).%N")
+			io.put_string ("Oracle (scripted, stands in for Qwen3-Coder on llama.cpp/Vulkan):%N%N")
+			create oracle.make (<<"b1 >= 0", "b1 = 1 and b2 = 2 and b3 = 3">>)
+			create proposer.make (asp, oracle)
+			if proposer.strengthen_to_non_vacuous (spec, 5) /= Void then end
+			across proposer.attempts as ic loop
+				io.put_string ("  " + ic + "%N")
+			end
+			io.put_string ("%NAfter the accepted clause, harden re-checks:%N")
+			create session.make (asp, spec)
+			session.harden
+			io.put_string (session.report)
 		end
 
 	core_loop_demo

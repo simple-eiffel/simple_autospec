@@ -18,6 +18,8 @@
 		</library>
 		<library name="simple_smt" location="$SIMPLE_EIFFEL\simple_smt\simple_smt.ecf"/>
 		<library name="simple_file" location="$SIMPLE_EIFFEL\simple_file\simple_file.ecf"/>
+		<library name="simple_json" location="$SIMPLE_EIFFEL\simple_json\simple_json.ecf"/>
+		<library name="simple_process" location="$SIMPLE_EIFFEL\simple_process\simple_process.ecf"/>
 		<cluster name="src" location=".\src\" recursive="true"/>
 	</target>
 	<target name="simple_autospec_tests" extends="simple_autospec">

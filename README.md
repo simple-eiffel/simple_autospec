@@ -5,7 +5,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Eiffel 25.02](https://img.shields.io/badge/Eiffel-25.02-purple.svg)
-![tests 15/15](https://img.shields.io/badge/tests-15%2F15-green.svg)
+![tests 20/20](https://img.shields.io/badge/tests-20%2F20-green.svg)
 
 The **AutoSpec** mechanical core: harden a specification with Z3-backed checks —
 feasibility, precondition-liveness, **vacuity detection**, and subsumption — built on
@@ -28,6 +28,34 @@ postcondition, and invariant clauses, it asks Z3:
 
 These are the *dispose* half of an LLM-proposes / Z3-disposes loop: nothing here judges
 correctness by fiat; every verdict is discharged by the solver.
+
+## The core loop: `harden`
+
+`AUTOSPEC_SESSION.harden` runs the whole diagnostic battery through Z3 and returns
+prioritized findings — the Socratic prompts you (or an LLM) read to know what to fix:
+
+```eiffel
+create session.make (asp, spec)
+session.harden
+print (session.report)
+--   [WARNING] vacuous-spec: a trivial result (all outputs = 0) satisfies the spec
+--             -- add a conservation law  {witness: b1 -> 0  b2 -> 0  b3 -> 0}
+--   => needs work
+```
+
+Findings, most severe first:
+
+| Severity | Kind | Meaning |
+|---|---|---|
+| CRITICAL | dead-precondition | precondition unsatisfiable (feature un-callable) |
+| CRITICAL | contradictory-obligation | postcondition and invariant can't both hold |
+| WARNING | unconstrained-result | no postcondition — any implementation passes |
+| WARNING | vacuous-spec | a trivial output (all `declare_output`s = 0) satisfies it |
+| info | redundant-clause | one postcondition implies another |
+
+The vacuity probe is automatic — you `declare_output` the result variables and it
+finds the dumb witness itself. `is_bulletproof` is True when nothing critical or
+warning remains.
 
 ## Quick Start
 

@@ -25,6 +25,7 @@ feature {NONE} -- Initialization
 			create preconditions.make (4)
 			create postconditions.make (4)
 			create invariants.make (4)
+			create outputs.make (2)
 		ensure
 			smt_set: smt = a_smt
 			name_set: name = a_name
@@ -46,6 +47,10 @@ feature -- Access
 
 	invariants: ARRAYED_LIST [SMT_EXPR]
 			-- class-invariant clauses.
+
+	outputs: ARRAYED_LIST [SMT_EXPR]
+			-- The variables the implementation produces (Result, changed
+			-- attributes). Used by the vacuity probe to pin a trivial result.
 
 	clause_count: INTEGER
 			-- Total number of clauses.
@@ -83,6 +88,16 @@ feature -- Construction
 			invariants.extend (a_clause)
 		ensure
 			added: invariants.count = old invariants.count + 1
+		end
+
+	declare_output (a_variable: SMT_EXPR)
+			-- Note that `a_variable' is produced by the implementation.
+		require
+			same_context: a_variable.context = smt.context
+		do
+			outputs.extend (a_variable)
+		ensure
+			added: outputs.count = old outputs.count + 1
 		end
 
 feature -- Composed formulas

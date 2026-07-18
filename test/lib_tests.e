@@ -285,6 +285,104 @@ feature {NONE} -- Miner fixtures
 				+ "end%N"
 		end
 
+feature -- The core loop (AUTOSPEC_SESSION)
+
+	test_session_flags_dead_precondition
+			-- harden reports a dead precondition as CRITICAL.
+		local
+			asp: SIMPLE_AUTOSPEC
+			spec: AUTOSPEC_SPEC
+			session: AUTOSPEC_SESSION
+			x, zero: SMT_EXPR
+		do
+			create asp.make
+			x := asp.smt.int_const ("x"); zero := asp.smt.int_value (0)
+			spec := asp.new_spec ("dead")
+			spec.require_that (x.greater (zero))
+			spec.require_that (x.less (zero))
+			create session.make (asp, spec)
+			session.harden
+			assert ("not bulletproof", not session.is_bulletproof)
+			assert ("has a critical finding", session.critical_count >= 1)
+			assert ("report mentions dead-precondition", session.report.has_substring ("dead-precondition"))
+		end
+
+	test_session_flags_contradictory_obligation
+			-- harden reports post AND invariant that contradict as CRITICAL.
+		local
+			asp: SIMPLE_AUTOSPEC
+			spec: AUTOSPEC_SESSION
+			s: AUTOSPEC_SPEC
+			r, zero: SMT_EXPR
+		do
+			create asp.make
+			r := asp.smt.int_const ("r"); zero := asp.smt.int_value (0)
+			s := asp.new_spec ("bad_obligation")
+			s.ensure_that (r.greater (zero))
+			s.ensure_that (r.less (zero))
+			create spec.make (asp, s)
+			spec.harden
+			assert ("contradictory obligation is critical", spec.critical_count >= 1)
+			assert ("report mentions contradictory-obligation", spec.report.has_substring ("contradictory-obligation"))
+		end
+
+	test_session_flags_vacuous_spec
+			-- harden auto-detects a weak sort spec as vacuous (trivial output accepted).
+		local
+			asp: SIMPLE_AUTOSPEC
+			spec: AUTOSPEC_SPEC
+			session: AUTOSPEC_SESSION
+			b1, b2, b3: SMT_EXPR
+			l_vacuous: BOOLEAN
+		do
+			create asp.make
+			b1 := asp.smt.int_const ("b1"); b2 := asp.smt.int_const ("b2"); b3 := asp.smt.int_const ("b3")
+			spec := asp.new_spec ("sort_weak")
+			spec.ensure_that (b1.at_most (b2))
+			spec.ensure_that (b2.at_most (b3))
+			spec.declare_output (b1); spec.declare_output (b2); spec.declare_output (b3)
+			create session.make (asp, spec)
+			session.harden
+			across session.findings as ic loop
+				if ic.kind.same_string ("vacuous-spec") then l_vacuous := True end
+			end
+			assert ("weak sort spec flagged vacuous", l_vacuous)
+		end
+
+	test_session_bulletproof_when_strong
+			-- A strengthened spec (permutation added) is bullet-proof.
+		local
+			asp: SIMPLE_AUTOSPEC
+			spec: AUTOSPEC_SPEC
+			session: AUTOSPEC_SESSION
+			b1, b2, b3: SMT_EXPR
+		do
+			create asp.make
+			b1 := asp.smt.int_const ("b1"); b2 := asp.smt.int_const ("b2"); b3 := asp.smt.int_const ("b3")
+			spec := sort_spec_strong (asp, b1, b2, b3)
+			spec.declare_output (b1); spec.declare_output (b2); spec.declare_output (b3)
+			create session.make (asp, spec)
+			session.harden
+			assert ("strong spec is bulletproof", session.is_bulletproof)
+		end
+
+	test_session_flags_unconstrained_result
+			-- A spec with no postcondition warns about an unconstrained result.
+		local
+			asp: SIMPLE_AUTOSPEC
+			spec: AUTOSPEC_SPEC
+			session: AUTOSPEC_SESSION
+			x: SMT_EXPR
+		do
+			create asp.make
+			x := asp.smt.int_const ("x")
+			spec := asp.new_spec ("no_post")
+			spec.require_that (x.greater (asp.smt.int_value (0)))
+			create session.make (asp, spec)
+			session.harden
+			assert ("unconstrained result warned", session.report.has_substring ("unconstrained-result"))
+		end
+
 feature {NONE} -- Helpers
 
 	all_zero (a_asp: SIMPLE_AUTOSPEC; b1, b2, b3: SMT_EXPR): SMT_EXPR

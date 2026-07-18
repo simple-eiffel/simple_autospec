@@ -75,11 +75,28 @@ feature -- Structural checks
 			-- Is `a_spec' implementable at all? False when pre and post and
 			-- invariant are mutually contradictory (an impossible requirement,
 			-- caught at spec time before any code exists).
+			-- Note: sound only for single-state specs (queries, or specs whose
+			-- pre and post reference disjoint variables); conjoining a command's
+			-- pre-state and post-state is not a valid feasibility test.
 		require
 			same_solver: a_spec.smt = smt
 		do
 			smt.reset
 			smt.assume (a_spec.all_conditions)
+			Result := smt.is_satisfiable
+			record_witness (Result)
+		end
+
+	is_obligation_satisfiable (a_spec: AUTOSPEC_SPEC): BOOLEAN
+			-- Is `a_spec's obligation (postcondition and invariant) satisfiable?
+			-- Both describe the SAME post-state, so this IS a sound feasibility
+			-- test: False means the postcondition contradicts itself or the
+			-- invariant -- a real, unimplementable requirement.
+		require
+			same_solver: a_spec.smt = smt
+		do
+			smt.reset
+			smt.assume (a_spec.obligation)
 			Result := smt.is_satisfiable
 			record_witness (Result)
 		end

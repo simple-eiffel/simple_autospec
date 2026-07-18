@@ -43,6 +43,13 @@ feature {NONE} -- Initialization
 			run_test (agent t.test_miner_extracts_and_translates, "miner_extracts_and_translates")
 			run_test (agent t.test_miner_detects_infeasible_real_contract, "miner_detects_infeasible_real_contract")
 
+			io.put_string ("%NCore loop (AUTOSPEC_SESSION)%N----------------------------%N")
+			run_test (agent t.test_session_flags_dead_precondition, "session_flags_dead_precondition")
+			run_test (agent t.test_session_flags_contradictory_obligation, "session_flags_contradictory_obligation")
+			run_test (agent t.test_session_flags_vacuous_spec, "session_flags_vacuous_spec")
+			run_test (agent t.test_session_bulletproof_when_strong, "session_bulletproof_when_strong")
+			run_test (agent t.test_session_flags_unconstrained_result, "session_flags_unconstrained_result")
+
 			io.put_string ("%N====================================%N")
 			io.put_string ("Results: " + passed.out + " passed, " + failed.out + " failed%N")
 			if failed > 0 then io.put_string ("TESTS FAILED%N") else io.put_string ("ALL TESTS PASSED%N") end

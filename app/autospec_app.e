@@ -94,7 +94,42 @@ feature {NONE} -- Initialization
 			io.put_string ("Result: the strengthened spec is feasible, non-vacuous, admits the%N")
 			io.put_string ("right answer, and subsumes the weak one -- bullet-proof, checked by Z3.%N")
 
+			core_loop_demo
 			brownfield_demo
+		end
+
+	core_loop_demo
+			-- Show the harden battery producing Socratic findings automatically.
+		local
+			asp: SIMPLE_AUTOSPEC
+			weak, strong: AUTOSPEC_SPEC
+			session: AUTOSPEC_SESSION
+			b1, b2, b3, one, three: SMT_EXPR
+		do
+			io.put_string ("%N%NAutoSpec core loop: harden() emits Socratic findings%N")
+			io.put_string ("====================================================%N%N")
+			create asp.make
+			b1 := asp.smt.int_const ("b1"); b2 := asp.smt.int_const ("b2"); b3 := asp.smt.int_const ("b3")
+			one := asp.smt.int_value (1); three := asp.smt.int_value (3)
+
+			weak := asp.new_spec ("sort (weak)")
+			weak.ensure_that (b1.at_most (b2))
+			weak.ensure_that (b2.at_most (b3))
+			weak.declare_output (b1); weak.declare_output (b2); weak.declare_output (b3)
+			create session.make (asp, weak)
+			session.harden
+			io.put_string (session.report)
+
+			strong := asp.new_spec ("sort (strong)")
+			strong.ensure_that (b1.at_most (b2)); strong.ensure_that (b2.at_most (b3))
+			strong.ensure_that (asp.smt.all_distinct (<<b1, b2, b3>>))
+			strong.ensure_that (one.at_most (b1)); strong.ensure_that (b1.at_most (three))
+			strong.ensure_that (one.at_most (b2)); strong.ensure_that (b2.at_most (three))
+			strong.ensure_that (one.at_most (b3)); strong.ensure_that (b3.at_most (three))
+			strong.declare_output (b1); strong.declare_output (b2); strong.declare_output (b3)
+			create session.make (asp, strong)
+			session.harden
+			io.put_string (session.report)
 		end
 
 	brownfield_demo

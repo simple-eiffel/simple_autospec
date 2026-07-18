@@ -11,6 +11,20 @@ create
 feature {NONE} -- Initialization
 
 	make
+			-- With a file argument, mine that .e file's contracts; otherwise
+			-- walk the built-in sort-spec hardening + brownfield demo.
+		local
+			l_args: ARGUMENTS_32
+		do
+			create l_args
+			if l_args.argument_count >= 1 then
+				mine_file (l_args.argument (1).to_string_8)
+			else
+				run_demo
+			end
+		end
+
+	run_demo
 			-- Walk the Socratic hardening of a sort specification.
 		local
 			asp: SIMPLE_AUTOSPEC
@@ -81,6 +95,66 @@ feature {NONE} -- Initialization
 				io.put_string ("  " + asp.feasibility_report (ic.spec) + "%N%N")
 			end
 			io.put_string ("Every mined clause is a SEED; AutoSpec then interrogates it with Z3.%N")
+		end
+
+	mine_file (a_path: STRING)
+			-- Mine the contracts of the Eiffel file at `a_path' and report.
+		local
+			asp: SIMPLE_AUTOSPEC
+			miner: AUTOSPEC_MINER
+			mined: ARRAYED_LIST [AUTOSPEC_MINED]
+			l_src: STRING
+			l_total_kept, l_total_skipped, l_dead, l_infeasible: INTEGER
+		do
+			l_src := read_source (a_path)
+			if l_src.is_empty then
+				io.put_string ("Cannot read or empty: " + a_path + "%N")
+			else
+				io.put_string ("AutoSpec mining: " + a_path + "%N")
+				io.put_string ("========================================%N%N")
+				create asp.make
+				create miner.make (asp)
+				mined := miner.mine (l_src)
+				across mined as ic loop
+					l_total_kept := l_total_kept + ic.translated_count
+					l_total_skipped := l_total_skipped + ic.skipped_count
+					io.put_string (asp.feasibility_report (ic.spec)
+						+ "  [" + ic.translated_count.out + " kept, " + ic.skipped_count.out + " skipped]%N")
+					if not asp.is_precondition_live (ic.spec) then
+						l_dead := l_dead + 1
+					elseif not asp.is_feasible (ic.spec) then
+						l_infeasible := l_infeasible + 1
+					end
+				end
+				io.put_string ("%N" + mined.count.out + " feature(s) with translatable contracts; "
+					+ l_total_kept.out + " clauses in-fragment, " + l_total_skipped.out + " skipped.%N")
+				if l_dead + l_infeasible > 0 then
+					io.put_string ("FLAGGED: " + l_dead.out + " dead precondition(s), "
+						+ l_infeasible.out + " infeasible spec(s).%N")
+				else
+					io.put_string ("No dead or infeasible contracts found in the decidable fragment.%N")
+				end
+			end
+		end
+
+	read_source (a_path: STRING): STRING
+			-- Full text of the file at `a_path' ("" when unreadable).
+		local
+			f: PLAIN_TEXT_FILE
+		do
+			create Result.make (4096)
+			create f.make_with_name (a_path)
+			if f.exists and then f.is_readable then
+				f.open_read
+				from until f.end_of_file loop
+					f.read_line
+					Result.append (f.last_string)
+					Result.append_character ('%N')
+				end
+				f.close
+			end
+		ensure
+			result_attached: Result /= Void
 		end
 
 	sample_source: STRING

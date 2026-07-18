@@ -1,0 +1,15 @@
+AutoSpec LIVE -- real model in the propose/dispose loop
+======================================================
+Model:  D:/prod/models/Qwen2.5-Coder-3B-Instruct-Q4_K_M.gguf
+Starting server (GPU preferred, CPU fallback)...
+Server up [reused] at http://127.0.0.1:8137
+
+Vacuous spec: ensure b1<=b2<=b3 (accepts the trivial 0,0,0).
+Asking the model for a conservation clause; Z3 checks each...
+
+The loop (real model + Z3):
+  attempt 1: ACCEPTED '(b1 + b2 + b3) > 0'
+
+AutoSpec hardening -- sort
+  (no diagnostics: spec is feasible, constrained, and non-vacuous)
+  => BULLET-PROOF (no critical or warning issues)

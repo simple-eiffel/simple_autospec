@@ -19,6 +19,8 @@ feature {NONE} -- Initialization
 			create l_args
 			if l_args.argument_count >= 2 and then l_args.argument (1).same_string ("--scan") then
 				scan_tree (l_args.argument (2).to_string_8)
+			elseif l_args.argument_count >= 2 and then l_args.argument (1).same_string ("--live") then
+				run_live (l_args)
 			elseif l_args.argument_count >= 1 then
 				mine_file (l_args.argument (1).to_string_8)
 			else
@@ -188,6 +190,63 @@ feature {NONE} -- Initialization
 				io.put_string ("  " + asp.feasibility_report (ic.spec) + "%N%N")
 			end
 			io.put_string ("Every mined clause is a SEED; AutoSpec then interrogates it with Z3.%N")
+		end
+
+	run_live (a_args: ARGUMENTS_32)
+			-- --live <model_gguf> [gpu_server_exe] [cpu_server_exe] [port]
+			-- Start a llama.cpp server (GPU preferred, CPU fallback) and run the
+			-- propose/dispose loop against the real model.
+		local
+			l_model, l_gpu, l_cpu: STRING
+			l_port: INTEGER
+			server: AUTOSPEC_SERVER
+			client: AUTOSPEC_LLM_CLIENT
+			asp: SIMPLE_AUTOSPEC
+			spec: AUTOSPEC_SPEC
+			proposer: AUTOSPEC_PROPOSER
+			session: AUTOSPEC_SESSION
+			b1, b2, b3: SMT_EXPR
+		do
+			l_model := a_args.argument (2).to_string_8
+			if a_args.argument_count >= 3 then l_gpu := a_args.argument (3).to_string_8 else l_gpu := "" end
+			if a_args.argument_count >= 4 then l_cpu := a_args.argument (4).to_string_8 else l_cpu := "" end
+			if a_args.argument_count >= 5 and then a_args.argument (5).is_integer then l_port := a_args.argument (5).to_integer else l_port := 8080 end
+
+			io.put_string ("AutoSpec LIVE -- real model in the propose/dispose loop%N")
+			io.put_string ("======================================================%N")
+			io.put_string ("Model:  " + l_model + "%N")
+			io.put_string ("Starting server (GPU preferred, CPU fallback)...%N")
+			create server.make (l_gpu, l_cpu, l_model, l_port)
+			if not server.ensure_up then
+				io.put_string ("FAILED to start a server: " + server.last_error + "%N")
+			else
+				io.put_string ("Server up [" + server.backend + "] at " + server.base_url + "%N%N")
+				create client.make_at ("127.0.0.1", l_port)
+				client.set_max_tokens (64)
+
+				create asp.make
+				b1 := asp.smt.real_const ("b1"); b2 := asp.smt.real_const ("b2"); b3 := asp.smt.real_const ("b3")
+				spec := asp.new_spec ("sort")
+				spec.ensure_that (b1.at_most (b2)); spec.ensure_that (b2.at_most (b3))
+				spec.declare_output (b1); spec.declare_output (b2); spec.declare_output (b3)
+				io.put_string ("Vacuous spec: ensure b1<=b2<=b3 (accepts the trivial 0,0,0).%N")
+				io.put_string ("Asking the model for a conservation clause; Z3 checks each...%N%N")
+
+				create proposer.make (asp, client)
+				if attached proposer.strengthen_to_non_vacuous (spec, 6) as al then
+					io.put_string ("The loop (real model + Z3):%N")
+				else
+					io.put_string ("The loop ended without an accepted clause:%N")
+				end
+				across proposer.attempts as ic loop
+					io.put_string ("  " + ic + "%N")
+				end
+				io.put_string ("%N")
+				create session.make (asp, spec)
+				session.harden
+				io.put_string (session.report)
+				server.stop
+			end
 		end
 
 	mine_file (a_path: STRING)

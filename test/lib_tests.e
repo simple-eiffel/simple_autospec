@@ -433,7 +433,7 @@ feature -- Proposer loop (propose / dispose with feedback)
 			create proposer.make (asp, oracle)
 			if proposer.strengthen_to_non_vacuous (spec, 5) /= Void then end
 			assert ("two prompts sent", oracle.prompts_seen.count = 2)
-			assert ("second prompt carries feedback", oracle.prompts_seen [2].has_substring ("previous attempt was rejected"))
+			assert ("second prompt carries feedback", oracle.prompts_seen [2].has_substring ("previous reply was rejected"))
 		end
 
 	test_proposer_gives_up_on_garbage

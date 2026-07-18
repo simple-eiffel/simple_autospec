@@ -66,7 +66,7 @@ feature -- The loop
 			l_trivial := trivial_assignment (a_spec)
 			from l_attempt := 1 until l_attempt > a_max_attempts or Result /= Void loop
 				l_prompt := build_prompt (a_spec, l_trivial)
-				l_candidate := oracle.propose (l_prompt)
+				l_candidate := clean_candidate (oracle.propose (l_prompt))
 				if l_candidate.is_empty then
 					attempts.extend ("attempt " + l_attempt.out + ": oracle returned nothing")
 					l_attempt := a_max_attempts + 1
@@ -126,18 +126,97 @@ feature {NONE} -- Implementation
 		end
 
 	build_prompt (a_spec: AUTOSPEC_SPEC; a_trivial: SMT_EXPR): STRING
-			-- The instruction sent to the oracle, including any prior rejection.
+			-- The instruction sent to the oracle, including the actual variable
+			-- names, the current clauses, and any prior rejection.
+		local
+			l_vars, l_clauses: STRING
 		do
-			create Result.make (400)
-			Result.append ("You are hardening an Eiffel specification named '" + a_spec.name + "'.%N")
-			Result.append ("Its current postcondition is under-constrained: a trivial result where every%N")
-			Result.append ("output variable equals 0 wrongly satisfies it. Propose ONE additional Eiffel%N")
-			Result.append ("boolean clause (a conservation law) that rejects that trivial result while%N")
-			Result.append ("remaining satisfiable. Use only integer/boolean operators (+, -, *, <, <=, >,%N")
-			Result.append (">=, =, /=, and, or, not, implies). Output the clause only, no explanation.%N")
+			l_vars := output_names (a_spec)
+			l_clauses := postcondition_text (a_spec)
+			create Result.make (500)
+			Result.append ("Harden an Eiffel specification.%N")
+			Result.append ("The result variables are: " + l_vars + ".%N")
+			Result.append ("The current postcondition is: " + l_clauses + ".%N")
+			Result.append ("This is under-constrained: a trivial result where " + l_vars
+				+ " are all 0 wrongly satisfies it.%N")
+			Result.append ("Propose ONE additional boolean clause over ONLY the variables " + l_vars + " that%N")
+			Result.append ("rejects that trivial result while staying satisfiable. Use only these variables%N")
+			Result.append ("and the operators + - * < <= > >= = /= and or not. Reply with ONLY the clause on%N")
+			Result.append ("a single line -- no markdown, no code fences, no labels, no explanation.%N")
 			if not last_rejection.is_empty then
-				Result.append ("Your previous attempt was rejected: " + last_rejection + "%N")
-				Result.append ("Try a different, stronger clause.%N")
+				Result.append ("Your previous reply was rejected: " + last_rejection + "%N")
+				Result.append ("Reply with a different, stronger clause (raw text only).%N")
+			end
+		end
+
+	output_names (a_spec: AUTOSPEC_SPEC): STRING
+			-- Comma-separated names of the declared output variables.
+		local
+			l_first: BOOLEAN
+		do
+			create Result.make (32)
+			l_first := True
+			across a_spec.outputs as ic loop
+				if not l_first then Result.append (", ") end
+				l_first := False
+				Result.append (ic.to_string)
+			end
+		end
+
+	postcondition_text (a_spec: AUTOSPEC_SPEC): STRING
+			-- The current ensure clauses rendered as text.
+		local
+			l_first: BOOLEAN
+		do
+			create Result.make (48)
+			l_first := True
+			across a_spec.postconditions as ic loop
+				if not l_first then Result.append (" ; ") end
+				l_first := False
+				Result.append (ic.to_string)
+			end
+			if Result.is_empty then Result.append ("(none)") end
+		end
+
+	clean_candidate (a_raw: STRING): STRING
+			-- Strip markdown fences and a leading `label:' from a model reply,
+			-- returning the first line that looks like a bare clause.
+		local
+			l_lines: LIST [STRING]
+			l_line: STRING
+			l_colon: INTEGER
+		do
+			create Result.make_empty
+			l_lines := a_raw.split ('%N')
+			across l_lines as ic loop
+				if Result.is_empty then
+					l_line := ic.twin
+					l_line.prune_all ('%R')
+					l_line.left_adjust
+					l_line.right_adjust
+					if not l_line.is_empty and then not l_line.starts_with ("```") then
+							-- Drop a leading "word:" label (postcondition:, ensure:, clause:).
+						l_colon := l_line.index_of (':', 1)
+						if l_colon > 1 and then l_colon < l_line.count
+							and then is_word (l_line.substring (1, l_colon - 1))
+						then
+							l_line := l_line.substring (l_colon + 1, l_line.count)
+							l_line.left_adjust
+						end
+						Result := l_line
+					end
+				end
+			end
+		ensure
+			result_attached: Result /= Void
+		end
+
+	is_word (a_text: STRING): BOOLEAN
+			-- Is `a_text' a single identifier word (a plausible label)?
+		do
+			Result := not a_text.is_empty
+			across a_text as ic loop
+				if not (ic.is_alpha or ic = '_') then Result := False end
 			end
 		end
 

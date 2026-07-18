@@ -84,12 +84,13 @@ feature -- Proposal
 		end
 
 	propose (a_prompt: STRING): STRING
-			-- POST `a_prompt' to /completion and return the model's `content'.
+			-- POST `a_prompt' to /v1/chat/completions (OpenAI-compatible, so the
+			-- model's chat template is applied) and return the message content.
 		local
 			l_proc: SIMPLE_PROCESS
 			l_file: SIMPLE_FILE
-			l_body, l_body_path, l_json, l_conv: STRING
-			l_quick: SIMPLE_JSON_QUICK
+			l_body, l_body_path, l_json: STRING
+			l_out: STRING_32
 			l_u: UTF_CONVERTER
 		do
 			create Result.make_empty
@@ -100,17 +101,16 @@ feature -- Proposal
 			if l_file.set_content (l_body) then
 				create l_proc.make
 				l_proc.set_show_window (False)
-				l_proc.launch ("curl -s -X POST " + base_url + "/completion "
-					+ "-H %"Content-Type: application/json%" --data-binary @" + l_body_path)
-				if attached l_proc.captured_output as al then
-					l_json := l_u.utf_32_string_to_utf_8_string_8 (al)
-					create l_quick.make
-					if attached l_quick.get_string (l_json, "$.content") as al_c then
+				l_out := l_proc.command_output ("curl -s --max-time 120 -X POST " + base_url + "/v1/chat/completions "
+					+ "-H %"Content-Type: application/json%" --data-binary @%"" + l_body_path + "%"")
+				if l_proc.was_successful and then not l_out.is_empty then
+					l_json := l_u.utf_32_string_to_utf_8_string_8 (l_out)
+					if attached message_content (l_json) as al_c then
 						Result := al_c
 						Result.left_adjust
 						Result.right_adjust
 					else
-						last_error := "no 'content' field in response: " + l_json
+						last_error := "no choices[0].message.content in response: " + l_json
 					end
 				else
 					last_error := "curl produced no output"
@@ -123,14 +123,32 @@ feature -- Proposal
 feature {NONE} -- Implementation
 
 	request_body (a_prompt: STRING): STRING
-			-- llama.cpp /completion JSON body for `a_prompt'.
+			-- /v1/chat/completions JSON body for `a_prompt'.
 		do
-			create Result.make (a_prompt.count + 128)
-			Result.append ("{%"prompt%": %"")
+			create Result.make (a_prompt.count + 160)
+			Result.append ("{%"messages%": [{%"role%": %"user%", %"content%": %"")
 			Result.append (json_escaped (a_prompt))
-			Result.append ("%", %"n_predict%": " + max_tokens.out)
-			Result.append (", %"temperature%": " + temperature)
-			Result.append (", %"stop%": [%"%%N%%N%"], %"cache_prompt%": true}")
+			Result.append ("%"}], %"max_tokens%": " + max_tokens.out)
+			Result.append (", %"temperature%": " + temperature + "}")
+		end
+
+	message_content (a_json: STRING): detachable STRING
+			-- Extract choices[0].message.content from a chat-completion response.
+		local
+			l_quick: SIMPLE_JSON_QUICK
+		do
+			create l_quick.make
+			if attached l_quick.parse_object (a_json) as al_root then
+				if attached al_root.array_item ({STRING_32} "choices") as al_choices then
+					if al_choices.count >= 1 and then attached al_choices.object_item (1) as al_first then
+						if attached al_first.object_item ({STRING_32} "message") as al_msg then
+							if attached al_msg.string_item ({STRING_32} "content") as al_c then
+								Result := al_c.to_string_8
+							end
+						end
+					end
+				end
+			end
 		end
 
 	json_escaped (a_text: STRING): STRING

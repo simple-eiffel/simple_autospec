@@ -95,3 +95,25 @@ Initial release. The AutoSpec mechanical core, built on simple_smt.
 - The AutoSpec layer now uses linear REAL arithmetic consistently (matching the parser),
   so mined/parsed clauses and hand-built spec variables share a Z3 sort. (Fixes a
   parser/spec sort mismatch that made the proposer's clauses not constrain the outputs.)
+
+## 1.5.0 — 2026-07-18
+
+### Added
+- `AUTOSPEC_SERVER` — ensures there is always a llama.cpp server to run against:
+  reuses one already answering /health, else spawns one preferring a Vulkan (GPU)
+  build and falling back to a CPU build; polls /health with a generous timeout.
+  Generic (binary + model paths are arguments; no private-model dependency).
+- CLI `--live <model.gguf> [gpu_exe] [cpu_exe] [port]`: starts a server and runs the
+  propose/dispose loop against the real model.
+- Model-reply cleaning: strips markdown code fences and a leading `label:` from the
+  model's output; the prompt now names the actual output variables and current clauses.
+
+### Fixed
+- Health check and the LLM POST use SIMPLE_PROCESS.command_output (not launch +
+  captured_output, which did not capture) -- matching the proven llama.cpp+curl pattern.
+
+### Verified (LIVE)
+- Full end-to-end run against a real local model (Qwen2.5-Coder-3B-Instruct Q4_K_M on
+  llama.cpp Vulkan): the model proposed `(b1 + b2 + b3) > 0` -- a valid conservation law
+  that rejects the trivial (0,0,0) result -- Z3 ACCEPTED it on attempt 1, and harden
+  then reported BULLET-PROOF. See reports/live_run.txt.

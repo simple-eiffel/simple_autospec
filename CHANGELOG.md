@@ -168,3 +168,29 @@ Initial release. The AutoSpec mechanical core, built on simple_smt.
 - With Qwen2.5-Coder-3B on Vulkan: `harden` asked the model, which proposed
   `(b1 + b2 + b3) > 0`, Z3 accepted on attempt 1, `show` confirmed the clause was
   kept, verdict BULLET-PROOF.
+
+## 1.8.0 — 2026-07-19
+
+### Added — conversational spec building (`--chat`)
+- `AUTOSPEC_CHAT` and `--chat <model_gguf> [gpu_exe] [cpu_exe] [port]`: describe a
+  feature in plain English and the local model turns it into a formal spec, which
+  Z3 checks. You never declare variables or type math -- results come back as prose
+  ("it holds together and is NOT vacuous -- looks solid" / "under-constrained" /
+  "these clash"). Refine by talking; `show` reveals the formal contract; `accept`
+  keeps it; `reset`/`help`/`quit`.
+- The model is asked for a strict OUTPUT/REQUIRE/ENSURE form pairing a formal
+  condition (decidable fragment) with a plain-English restatement; the formal half
+  feeds Z3, the English half is shown. Requires a model.
+
+### Fixed — sound vacuity for input-dependent queries
+- Vacuity is now decided by validity, not satisfiability: a trivial result (output
+  = 0) is "trivially acceptable" only if it satisfies the obligation for EVERY
+  input. `--chat` proves `(precondition and out=0) implies obligation` instead of
+  asking whether the trivial result works for *some* input. This stops `max(a,b)`
+  (and any input-dependent query) from being wrongly flagged under-constrained,
+  while a genuinely weak spec like `ensure r >= 0` is still correctly flagged.
+
+### Verified (LIVE)
+- Qwen2.5-Coder-3B on Vulkan: "the larger of two numbers" -> spec with three
+  guarantees, Z3 verdict "NOT vacuous, looks solid"; "any non-negative number" ->
+  correctly "under-constrained". `show` reveals the formal contract. 23/23 tests.

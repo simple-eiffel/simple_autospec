@@ -21,6 +21,8 @@ feature {NONE} -- Initialization
 				scan_tree (l_args.argument (2).to_string_8)
 			elseif l_args.argument_count >= 2 and then l_args.argument (1).same_string ("--live") then
 				run_live (l_args)
+			elseif l_args.argument_count >= 2 and then l_args.argument (1).same_string ("--chat") then
+				run_chat (l_args)
 			elseif l_args.argument_count >= 1 and then l_args.argument (1).same_string ("--repl") then
 				run_repl (l_args)
 			elseif l_args.argument_count >= 1 then
@@ -288,6 +290,38 @@ feature {NONE} -- Initialization
 			end
 			repl.run
 			if l_have_server and then attached server as al_server then al_server.stop end
+		end
+
+	run_chat (a_args: ARGUMENTS_32)
+			-- --chat <model_gguf> [gpu_server_exe] [cpu_server_exe] [port]
+			-- Conversational spec building: plain English in, a Z3-checked spec out.
+			-- Requires a model (natural language is the whole point).
+		local
+			l_model, l_gpu, l_cpu: STRING
+			l_port: INTEGER
+			asp: SIMPLE_AUTOSPEC
+			client: AUTOSPEC_LLM_CLIENT
+			server: AUTOSPEC_SERVER
+			chat: AUTOSPEC_CHAT
+		do
+			l_model := a_args.argument (2).to_string_8
+			if a_args.argument_count >= 3 then l_gpu := a_args.argument (3).to_string_8 else l_gpu := "" end
+			if a_args.argument_count >= 4 then l_cpu := a_args.argument (4).to_string_8 else l_cpu := "" end
+			if a_args.argument_count >= 5 and then a_args.argument (5).is_integer then l_port := a_args.argument (5).to_integer else l_port := 8080 end
+			io.put_string ("Starting model server (GPU preferred, CPU fallback)...%N")
+			create server.make (l_gpu, l_cpu, l_model, l_port)
+			if server.ensure_up then
+				io.put_string ("Server up [" + server.backend + "] at " + server.base_url + "%N%N")
+				create client.make_at (server.host, server.port)
+				client.set_max_tokens (256)
+				create asp.make
+				create chat.make (asp, client)
+				chat.run
+				server.stop
+			else
+				io.put_string ("Could not start a model server: " + server.last_error + "%N")
+				io.put_string ("(--chat needs a model; check the gguf and server paths.)%N")
+			end
 		end
 
 	mine_file (a_path: STRING)

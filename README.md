@@ -101,6 +101,28 @@ asp.is_vacuous_for (weak, dumb)      -- True: the spec is under-constrained!
 -- Add the permutation conservation law -> the strengthened spec rejects (0,0,0).
 ```
 
+## Talk to it in plain English (`--chat`)
+
+Describe what a function should do; the local model turns your words into a formal
+specification and Z3 checks it. No variables, no math syntax — you talk, it specs,
+Z3 disposes, and the answer comes back in prose.
+
+```
+$ ./bin/simple_autospec.exe --chat model.gguf gpu_server.exe cpu_server.exe 8137
+
+You> the larger of two numbers a and b
+  Here's what it would guarantee:
+   - the result is at least as large as a
+   - the result is at least as large as b
+   - the result is one of the two inputs
+  Z3 check: it holds together and is NOT vacuous -- looks solid.
+You> show          # reveal the formal contract
+You> accept        # keep it
+```
+
+Say what you want changed to refine it; `show` reveals the math, `accept` keeps it,
+`quit` leaves. (Needs a model — natural language is the point.)
+
 ## Interactive contract playground (`--repl`)
 
 Drive the engine by hand: declare result variables, type contract clauses, and let

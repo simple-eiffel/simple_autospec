@@ -21,6 +21,8 @@ feature {NONE} -- Initialization
 				scan_tree (l_args.argument (2).to_string_8)
 			elseif l_args.argument_count >= 2 and then l_args.argument (1).same_string ("--live") then
 				run_live (l_args)
+			elseif l_args.argument_count >= 1 and then l_args.argument (1).same_string ("--repl") then
+				run_repl (l_args)
 			elseif l_args.argument_count >= 1 then
 				mine_file (l_args.argument (1).to_string_8)
 			else
@@ -248,6 +250,44 @@ feature {NONE} -- Initialization
 				io.put_string (session.report)
 				server.stop
 			end
+		end
+
+	run_repl (a_args: ARGUMENTS_32)
+			-- --repl [model_gguf] [gpu_server_exe] [cpu_server_exe] [port]
+			-- Interactive contract playground. With a model, `harden' can
+			-- auto-strengthen; without one, it is a Z3-only session.
+		local
+			l_model, l_gpu, l_cpu: STRING
+			l_port: INTEGER
+			asp: SIMPLE_AUTOSPEC
+			client: AUTOSPEC_LLM_CLIENT
+			server: AUTOSPEC_SERVER
+			repl: AUTOSPEC_REPL
+			l_have_server: BOOLEAN
+		do
+			create asp.make
+			if a_args.argument_count >= 2 then
+				l_model := a_args.argument (2).to_string_8
+				if a_args.argument_count >= 3 then l_gpu := a_args.argument (3).to_string_8 else l_gpu := "" end
+				if a_args.argument_count >= 4 then l_cpu := a_args.argument (4).to_string_8 else l_cpu := "" end
+				if a_args.argument_count >= 5 and then a_args.argument (5).is_integer then l_port := a_args.argument (5).to_integer else l_port := 8080 end
+				io.put_string ("Starting model server (GPU preferred, CPU fallback)...%N")
+				create server.make (l_gpu, l_cpu, l_model, l_port)
+				if server.ensure_up then
+					l_have_server := True
+					io.put_string ("Server up [" + server.backend + "] at " + server.base_url + "%N%N")
+					create client.make_at (server.host, server.port)
+					client.set_max_tokens (64)
+					create repl.make_live (asp, client)
+				else
+					io.put_string ("No server (" + server.last_error + "); continuing Z3-only.%N%N")
+					create repl.make (asp)
+				end
+			else
+				create repl.make (asp)
+			end
+			repl.run
+			if l_have_server and then attached server as al_server then al_server.stop end
 		end
 
 	mine_file (a_path: STRING)

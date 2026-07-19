@@ -143,3 +143,28 @@ Initial release. The AutoSpec mechanical core, built on simple_smt.
   registry`, reused. Both prove any project (including private HTTP-only ones) shares the
   one model by URL, with zero code dependency.
 - 23/23 unit tests pass; zero compilation warnings.
+
+## 1.7.0 — 2026-07-19
+
+### Added — interactive contract playground (`--repl`)
+- `AUTOSPEC_REPL` and `--repl [model_gguf] [gpu_exe] [cpu_exe] [port]`: an
+  interactive session where you declare result variables, type require/ensure/
+  invariant clauses, and drive Z3 directly:
+  - `outputs a b c` — declare result variables
+  - `require`/`ensure`/`invariant <expr>` — add a clause
+  - `test <expr>` — try an ensure clause without keeping it (Z3 reports feasible /
+    vacuous / would-be-unsatisfiable)
+  - `check` — feasibility and vacuity (with a witness)
+  - `show`, `reset`, `help`, `quit`
+  - `harden` — run the deterministic diagnostic battery; with a model configured,
+    first ask it to strengthen a vacuous spec until Z3 accepts.
+- Two tiers: the Z3 commands need no model; `--repl` with a model path also starts
+  a llama.cpp server (via `AUTOSPEC_SERVER`, GPU-preferred) so `harden` can
+  auto-strengthen. Honors the `LLAMA_SERVER_URL` rendezvous.
+
+### Verified (LIVE)
+- Z3-only: declared a sort spec, `check` flagged it VACUOUS, added a conservation
+  clause, `harden` -> BULLET-PROOF.
+- With Qwen2.5-Coder-3B on Vulkan: `harden` asked the model, which proposed
+  `(b1 + b2 + b3) > 0`, Z3 accepted on attempt 1, `show` confirmed the clause was
+  kept, verdict BULLET-PROOF.

@@ -101,6 +101,29 @@ asp.is_vacuous_for (weak, dumb)      -- True: the spec is under-constrained!
 -- Add the permutation conservation law -> the strengthened spec rejects (0,0,0).
 ```
 
+## Interactive contract playground (`--repl`)
+
+Drive the engine by hand: declare result variables, type contract clauses, and let
+Z3 tell you whether the spec is feasible or vacuous — and, with a local model
+attached, ask it to strengthen a vacuous spec until Z3 accepts.
+
+```
+$ ./bin/simple_autospec.exe --repl               # Z3-only
+$ ./bin/simple_autospec.exe --repl model.gguf gpu_server.exe cpu_server.exe 8137
+
+AutoSpec> outputs b1 b2 b3
+AutoSpec> ensure b1 <= b2
+AutoSpec> ensure b2 <= b3
+AutoSpec> check
+  VACUOUS: the trivial result (all outputs = 0) satisfies it
+AutoSpec> harden
+  attempt 1: ACCEPTED '(b1 + b2 + b3) > 0'   => BULLET-PROOF
+AutoSpec> quit
+```
+
+Commands: `outputs`, `require`/`ensure`/`invariant`, `test` (try without keeping),
+`check`, `show`, `harden`, `reset`, `help`, `quit`. Operators: `+ - * < <= > >= = /= and or not`.
+
 ## Brownfield intake: mine contracts from existing code
 
 Point the miner at real Eiffel source. It extracts each feature's `require`/`ensure`
